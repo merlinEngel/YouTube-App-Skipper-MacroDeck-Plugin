@@ -12,5 +12,5 @@ jobs:
       id-token: write
     with:
       version: ${{ github.event.release.tag_name }}
-      source: '.'
+      source: 'src/YouTubeAdSkipper'
       changelog: ${{ github.event.release.body }}
