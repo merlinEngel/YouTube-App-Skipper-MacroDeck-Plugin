@@ -6,9 +6,9 @@
     <File Path="README.md" />
   </Folder>
   <Folder Name="/src/">
-    <Project Path="src/MacroDeck.PluginTemplate/MacroDeck.PluginTemplate.csproj" />
+    <Project Path="src/YouTubeAdSkipper/YouTubeAdSkipper.csproj" />
   </Folder>
   <Folder Name="/tests/">
-    <Project Path="tests/MacroDeck.PluginTemplate.Tests/MacroDeck.PluginTemplate.Tests.csproj" />
+    <Project Path="tests/YouTubeAdSkipper.Tests/YouTubeAdSkipper.Tests.csproj" />
   </Folder>
 </Solution>

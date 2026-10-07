@@ -1,0 +1,22 @@
+{
+  "$schema": "https://schemas.macro-deck.app/plugin-manifest-v1.schema.json",
+  "manifestVersion": 1,
+  "id": "com.merlinengel.youtube-ad-skipper",
+  "name": "YouTube Ad Skipper",
+  "version": "1.0.0",
+  "description": "Skips YouTube ads in Safari and reports whether a skip button is currently available.",
+  "icon": "Assets/icon.svg",
+  "entrypoints": {
+    "osx-arm64": { "executable": "runtimes/osx-arm64/YouTubeAdSkipper.dll", "runtime": { "kind": "FrameworkDependent", "dotnetVersion": "10.0" } },
+    "osx-x64": { "executable": "runtimes/osx-x64/YouTubeAdSkipper.dll", "runtime": { "kind": "FrameworkDependent", "dotnetVersion": "10.0" } }
+  },
+  "publisher": {
+    "name": "merlinEngel"
+  },
+  "permissions": ["process:spawn"],
+  "license": "MIT",
+  "repository": "https://github.com/merlinEngel/YouTube-App-Skipper-MacroDeck-Plugin",
+  "compatibility": {
+    "macroDeck": ">=3.0.0-0"
+  }
+}

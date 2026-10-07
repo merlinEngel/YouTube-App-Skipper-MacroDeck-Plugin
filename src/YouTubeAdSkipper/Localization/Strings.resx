@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- The default-language file. Every translation is checked against it and the fallback chain ends
+       here, so it is required even for a plugin that ships one language. Add a language by adding
+       Localization/Strings.<culture>.resx beside it (Strings.de.resx, Strings.pt-BR.resx).
+       A dotted key becomes a nested class: Actions.SkipYouTubeAd.Name is Strings.Actions.SkipYouTubeAd.Name(). -->
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Actions.SkipYouTubeAd.Name" xml:space="preserve">
+    <value>Skip YouTube ad</value>
+  </data>
+  <data name="Actions.SkipYouTubeAd.Description" xml:space="preserve">
+    <value>Presses the skip button of a YouTube ad playing in Safari.</value>
+  </data>
+  <data name="Errors.NoSkippableAd" xml:space="preserve">
+    <value>No skippable YouTube ad is showing in Safari.</value>
+  </data>
+  <data name="Errors.MacOsOnly" xml:space="preserve">
+    <value>Controlling Safari is only possible on macOS.</value>
+  </data>
+  <data name="Errors.JavaScriptDisabled" xml:space="preserve">
+    <value>Enable Develop > Allow JavaScript from Apple Events in Safari.</value>
+  </data>
+  <data name="Errors.AutomationDenied" xml:space="preserve">
+    <value>Allow Macro Deck to control Safari in System Settings > Privacy &amp; Security > Automation.</value>
+  </data>
+  <data name="Errors.SafariFailed" xml:space="preserve">
+    <value>Safari could not be read. See the plugin log for details.</value>
+  </data>
+</root>

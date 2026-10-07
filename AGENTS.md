@@ -3,85 +3,48 @@
 This file must be kept up to date. When a rule here stops matching reality, or a new rule emerges from
 work in this repository, update this file as part of that change rather than leaving it to drift.
 
-This repository is the **starting point for a Macro Deck 3 out-of-process plugin**, and it is
-simultaneously the content of the `dotnet new macrodeck-plugin` template package. The plugin under
-`src/MacroDeck.PluginTemplate/` is deliberately minimal: one integration and one example action,
-`LogMessageAction`, which exists solely to show the localized shape of an action end to end. It is
-meant to be replaced by the plugin's real first action, not grown into a second sample. Nothing else
-is demonstrated here.
+This repository is a **Macro Deck 3 out-of-process plugin** that skips YouTube ads in Safari (macOS only).
+It provides the `skip-youtube-ad` action and the `youtube_ad_skippable` variable. It was generated from the
+Macro Deck plugin template, which is no longer part of this repository.
 
 Worked examples of every capability live in the
-[sample plugins repository](https://github.com/Macro-Deck-App/Macro-Deck-Sample-Plugins), not here.
-Read from there rather than growing this template.
+[sample plugins repository](https://github.com/Macro-Deck-App/Macro-Deck-Sample-Plugins). Read from there
+rather than guessing at SDK shapes.
 
-[README.md](README.md) is the human-facing guide: how to build, how to run against a real host, how to
-pack. This file is the rule set for writing the plugin. Read it before changing code. The template
-package itself is covered by
-[packaging/README.md](https://github.com/Macro-Deck-App/Macro-Deck-Plugin-Template/blob/main/packaging/README.md).
+[README.md](README.md) is the human-facing guide. This file is the rule set for writing the plugin. Read it
+before changing code.
 
 ## Orientation
 
 ```
-src/MacroDeck.PluginTemplate/
+src/YouTubeAdSkipper/
   Program.cs             builder chain - a few lines and a RunAsync
-  manifest.json          identity, icon, per-platform entrypoints
+  manifest.json          identity, icon, per-platform entrypoints (macOS only)
   macrodeck-build.json   one publish target per declared entrypoint
-  PluginIntegration.cs   the integration: lifecycle and capability opt-ins
-  LogMessageAction.cs    the example action, localized end to end
+  PluginIntegration.cs   the integration: lifecycle, the action and the youtube_ad_skippable variable
+  SkipYouTubeAdAction.cs the "Skip YouTube ad" action and the SafariException to ActionResult mapping
+  SafariYouTubeClient.cs osascript + Safari "do JavaScript" access, serialized behind a semaphore
   Localization/Strings.resx   default-culture strings; Strings.<tag>.resx per language
   Assets/icon.svg        the icon the manifest declares
   Properties/launchSettings.json   the single real-host debug profile
-tests/MacroDeck.PluginTemplate.Tests/
-  PluginIntegrationTests.cs   the plugin builds, the action runs, the catalog is wired
+tests/YouTubeAdSkipper.Tests/
+  PluginIntegrationTests.cs   the plugin builds and the localization catalog is wired
 ```
-
-The template repository carries two more directories that a generated plugin does not:
-`.template.config/` (the `dotnet new` definition) and `packaging/` (the template package project, kept
-out of the solution on purpose).
-
-`.template.config/content/` holds the *only* deliberate copies in this repository: conditional variants
-of `manifest.json` and `macrodeck-build.json`. `dotnet new` selects platforms and omits unsupplied
-optional fields with `//#if` markers, which would make the checked-in files invalid JSON and break
-`macrodeck-plugin validate`, `build` and the manifest reader. So the files under `src/` stay valid and
-the templated variants replace them during generation. **Change one, change the other**: rendering the
-template with default parameters must reproduce the `src/` files byte for byte, which CI checks.
 
 Authoritative upstream documentation, in the
 [Macro Deck 3 repository](https://github.com/Macro-Deck-App/Macro-Deck-3/tree/main/docs/plugin-development):
 `sdk-reference.md` (every contract type), `plugin-hosting.md` (builder, registration modes, manifest,
 artifact, environment variables), `capability-parity.md` (what behaves differently out of process),
 `analyzers.md`, `conformance.md`, `testing-plugins.md`, `cli.md`. When a question is about SDK behaviour
-rather than this template's own code, look there rather than guessing.
+rather than this plugin's own code, look there rather than guessing.
 
-## Before you start on a fresh plugin
+## Identity files
 
-`dotnet new macrodeck-plugin` sets the identity and the publication metadata for you:
-
-```bash
-dotnet new macrodeck-plugin -n <Name> --pluginId <id> --pluginName "<Display name>" \
-  --publisher "<Publisher>" --repository <url> --platforms win-x64 --platforms osx-arm64
-```
-
-`--publisher`, `--description`, `--license`, `--repository`, `--homepage` and `--platforms` all land in
-`manifest.json` natively, and `--platforms` drives `macrodeck-build.json` with it. `--homepage` is
-omitted rather than written empty when not supplied, because the schema requires an absolute URL.
-`--repository` is always written and defaults to a placeholder the Store refuses, so pass the real
-one. `macrodeck-plugin new` collects the same values and passes them through.
-
-A repository *cloned* from this template still carries the template's identity, so fix that first, in
-one change:
-
-1. `manifest.json` - `id` (reverse-domain, lowercase, at least two dot-joined kebab segments, e.g.
-   `com.example.my-plugin`), `name`, `version`, `description`, `publisher.name`, `repository`, and
-   `entrypoints` plus the matching `macrodeck-build.json` targets for the platforms you actually ship.
-2. Rename the project, the test project, the solution file and the namespace. The project's
-   `AssemblyName` and `RootNamespace` are pinned: the first names the executable, so change it together
-   with the `entrypoints` paths - never one without the other, or `macrodeck-plugin build` fails with
-   `entrypoint-missing`; the second is where the generated `Strings` class lives.
-3. Replace `Assets/icon.svg`. The manifest's `icon` path is the single source of truth and the host
-   reads that file directly - there is no icon code to change.
-4. Replace `LogMessageAction` with the plugin's real first action, and its keys in
-   `Localization/Strings.resx` with real ones.
+The plugin's `AssemblyName` and `RootNamespace` are pinned to `YouTubeAdSkipper` in the project file: the first
+names the executable, so change it together with the `entrypoints` paths in `manifest.json` and the targets in
+`macrodeck-build.json`, never one without the other, or `macrodeck-plugin build` fails with
+`entrypoint-missing`. The second is where the generated `Strings` class lives. The manifest declares only the
+macOS platforms because Safari exists nowhere else.
 
 `MacroDeck.Plugin.Analyzers` is already referenced with `PrivateAssets="all"` - 13 compile-time
 diagnostics that catch most of the mistakes below while you type, plus the `[MacroDeckSdkUsage]`
@@ -359,7 +322,7 @@ enrollment token only through the project's local .NET User Secrets and remove i
 Do not add a second run configuration or a CLI/executable startup path.
 
 ```bash
-macrodeck-plugin test --project src/MacroDeck.PluginTemplate --report markdown --output conformance.md
+macrodeck-plugin test --project src/YouTubeAdSkipper --report markdown --output conformance.md
 ```
 
 The conformance suite drives a real session: capability contracts, invocation and cancellation semantics,
@@ -374,15 +337,10 @@ argument. Only to test against SDK surface that is not published yet, pack it in
 pass `-p:MacroDeckSdkVersion=<version>` - see "Building against a local SDK build" in
 [README.md](README.md).
 
-Working in the template repository itself rather than in a plugin generated from it? Changing its shape
-(files, names, `.template.config/template.json`, `packaging/`) also needs a generated-project check -
-see
-[packaging/README.md](https://github.com/Macro-Deck-App/Macro-Deck-Plugin-Template/blob/main/packaging/README.md).
-
 ## Packing a plugin release
 
 ```bash
-macrodeck-plugin build --source src/MacroDeck.PluginTemplate --output ./artifacts
+macrodeck-plugin build --source src/YouTubeAdSkipper --output ./artifacts
 macrodeck-plugin inspect --artifact ./artifacts/<id>-<version>.macroDeckPlugin
 ```
 
@@ -410,9 +368,6 @@ match.
 
 - Work on a branch, not directly on `main`. Use `feature/`, `fix/`, `refactor/`, `chore/`, `docs/` or
   `ci/` with a short kebab-case description, and an issue number where one exists.
-- Publishing the template package requires a pushed semantic-version tag such as
-  `v3.0.0-preview.3`. The publish workflow removes the leading `v` and uses the rest as the NuGet
-  package version. A push to `main` alone never publishes.
 - Keep changes focused; no unrelated reformatting.
 - Do not push or open a pull request unless asked.
 - Do not add AI attribution or co-author trailers.
