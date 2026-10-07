@@ -1,0 +1,161 @@
+name: CI
+
+# Proves the template still builds, tests and packs. Runs on every pull request and on main, and is
+# reused by the tag-triggered publish workflow.
+
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+  workflow_call:
+    inputs:
+      release-tag:
+        description: Version tag whose value, without the leading v, becomes the package version
+        required: false
+        type: string
+  workflow_dispatch: 
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_VERSION: 10.0.x
+
+jobs:
+  build:
+    name: Build, test and pack
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v6
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('Directory.Packages.props', '**/*.csproj') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      # Nothing gets published out of a build that warns, the same gate the Macro Deck repository uses.
+      - name: Build
+        run: dotnet build MacroDeck.PluginTemplate.slnx -c Release -warnaserror
+
+      - name: Test
+        run: dotnet test MacroDeck.PluginTemplate.slnx -c Release --no-build
+
+      - name: Pack template package
+        env:
+          RELEASE_TAG: ${{ inputs.release-tag }}
+        run: |
+          set -euo pipefail
+          pack_args=()
+          if [ -n "${RELEASE_TAG}" ]; then
+            if [[ ! "${RELEASE_TAG}" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?(\+[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?$ ]]; then
+              echo "::error::Release tag '${RELEASE_TAG}' is not a valid v-prefixed semantic version."
+              exit 1
+            fi
+            pack_args+=("-p:Version=${RELEASE_TAG#v}")
+          fi
+          dotnet pack packaging/MacroDeck.Plugin.Templates.csproj -c Release -o "${{ runner.temp }}/packages" "${pack_args[@]}"
+
+      # The template ships conditional copies of manifest.json and macrodeck-build.json under
+      # .template.config/content/, because a file carrying //#if markers is not valid JSON and the
+      # copies under src/ have to stay readable by the manifest reader and the CLI. Rendering the
+      # template with default parameters must therefore reproduce those two files exactly; anything
+      # else means the two copies have drifted.
+      - name: Generate a project and check it matches the template content
+        run: |
+          set -euo pipefail
+          dotnet new install "${{ runner.temp }}"/packages/MacroDeck.Plugin.Templates.*.nupkg
+          generated="${{ runner.temp }}/generated/MacroDeck.PluginTemplate"
+          dotnet new macrodeck-plugin \
+            --output "$generated" \
+            -n MacroDeck.PluginTemplate \
+            --pluginId app.macro-deck.template \
+            --pluginName "Macro Deck Plugin Template" \
+            --skipRestore
+          for file in manifest.json macrodeck-build.json; do
+            diff --unified \
+              "src/MacroDeck.PluginTemplate/$file" \
+              "$generated/src/MacroDeck.PluginTemplate/$file" \
+              || {
+                echo "::error file=.template.config/content/$file::Rendering the template with default parameters no longer reproduces src/MacroDeck.PluginTemplate/$file. Update both copies."
+                exit 1
+              }
+          done
+          echo "GENERATED_PROJECT=$generated" >> "$GITHUB_ENV"
+
+      - name: Build and test the generated project
+        run: |
+          set -euo pipefail
+          dotnet build "$GENERATED_PROJECT" -c Release -warnaserror
+          dotnet test "$GENERATED_PROJECT" -c Release --no-build
+
+      - name: Install the plugin CLI
+        run: |
+          set -euo pipefail
+          dotnet tool install --global MacroDeck.Plugin.Cli --prerelease
+          echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
+
+      # `build` is the packing path a generated plugin actually ships through, and the only thing that
+      # proves macrodeck-build.json has a working target for every runtime identifier the manifest
+      # declares. It publishes each one into its runtimes/<rid>/ slot and packs the artifact, so a
+      # template that emits the two files inconsistently fails here rather than in someone's release.
+      - name: Build and pack the generated plugin with the CLI
+        run: |
+          set -euo pipefail
+          macrodeck-plugin build \
+            --source "$GENERATED_PROJECT/src/MacroDeck.PluginTemplate" \
+            --output "${{ runner.temp }}/plugin-artifacts" \
+            --force
+          artifact=$(find "${{ runner.temp }}/plugin-artifacts" -name '*.macroDeckPlugin' -print -quit)
+          if [ -z "$artifact" ]; then
+            echo "::error::macrodeck-plugin build produced no artifact."
+            exit 1
+          fi
+          macrodeck-plugin validate --artifact "$artifact"
+          macrodeck-plugin inspect --artifact "$artifact"
+          echo "PLUGIN_ARTIFACT=$artifact" >> "$GITHUB_ENV"
+
+      # The artifact is only proven when it actually starts: `run --stub-host` launches it against a
+      # disposable in-process host, so a manifest whose entrypoint path does not match what the build
+      # produced fails here instead of on a user's machine. The session banner is the success signal;
+      # `run` streams until interrupted, so it is stopped as soon as that appears and its cancelled
+      # exit code is expected rather than checked.
+      - name: Run the packed plugin against a stub host
+        run: |
+          set -uo pipefail
+          log="${{ runner.temp }}/plugin-run.log"
+          macrodeck-plugin run --artifact "$PLUGIN_ARTIFACT" --stub-host --no-color > "$log" 2>&1 &
+          run_pid=$!
+          established=0
+          for _ in $(seq 1 180); do
+            if grep -q "Session established" "$log"; then
+              established=1
+              break
+            fi
+            if ! kill -0 "$run_pid" 2>/dev/null; then
+              break
+            fi
+            sleep 1
+          done
+          kill "$run_pid" 2>/dev/null || true
+          wait "$run_pid" 2>/dev/null || true
+          cat "$log"
+          if [ "$established" -ne 1 ]; then
+            echo "::error::The packed plugin never established a session against the stub host."
+            exit 1
+          fi
+
+      # Uploaded even for a run that will not publish, so the exact artifact a commit produced can be
+      # downloaded and inspected from the run.
+      - name: Upload package
+        uses: actions/upload-artifact@v7
+        with:
+          name: template-package
+          path: ${{ runner.temp }}/packages/*.nupkg
+          retention-days: 14
+          if-no-files-found: error

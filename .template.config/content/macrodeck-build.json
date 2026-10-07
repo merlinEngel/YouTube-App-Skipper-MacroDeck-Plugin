@@ -1,0 +1,109 @@
+{
+  "version": 1,
+  "targets": {
+//#if (winX64)
+    "win-x64": {
+      "executable": "dotnet",
+      "arguments": [
+        "publish", "MacroDeck.PluginTemplate.csproj",
+        "-c", "Release",
+        "-r", "win-x64",
+        "--self-contained", "false",
+        "-p:UseAppHost=false",
+        "-o", "bin/publish/win-x64"
+      ],
+      "output": "bin/publish/win-x64"
+//#if (commaAfterWinX64)
+    },
+//#else
+    }
+//#endif
+//#endif
+//#if (winArm64)
+    "win-arm64": {
+      "executable": "dotnet",
+      "arguments": [
+        "publish", "MacroDeck.PluginTemplate.csproj",
+        "-c", "Release",
+        "-r", "win-arm64",
+        "--self-contained", "false",
+        "-p:UseAppHost=false",
+        "-o", "bin/publish/win-arm64"
+      ],
+      "output": "bin/publish/win-arm64"
+//#if (commaAfterWinArm64)
+    },
+//#else
+    }
+//#endif
+//#endif
+//#if (osxArm64)
+    "osx-arm64": {
+      "executable": "dotnet",
+      "arguments": [
+        "publish", "MacroDeck.PluginTemplate.csproj",
+        "-c", "Release",
+        "-r", "osx-arm64",
+        "--self-contained", "false",
+        "-p:UseAppHost=false",
+        "-o", "bin/publish/osx-arm64"
+      ],
+      "output": "bin/publish/osx-arm64"
+//#if (commaAfterOsxArm64)
+    },
+//#else
+    }
+//#endif
+//#endif
+//#if (osxX64)
+    "osx-x64": {
+      "executable": "dotnet",
+      "arguments": [
+        "publish", "MacroDeck.PluginTemplate.csproj",
+        "-c", "Release",
+        "-r", "osx-x64",
+        "--self-contained", "false",
+        "-p:UseAppHost=false",
+        "-o", "bin/publish/osx-x64"
+      ],
+      "output": "bin/publish/osx-x64"
+//#if (commaAfterOsxX64)
+    },
+//#else
+    }
+//#endif
+//#endif
+//#if (linuxX64)
+    "linux-x64": {
+      "executable": "dotnet",
+      "arguments": [
+        "publish", "MacroDeck.PluginTemplate.csproj",
+        "-c", "Release",
+        "-r", "linux-x64",
+        "--self-contained", "false",
+        "-p:UseAppHost=false",
+        "-o", "bin/publish/linux-x64"
+      ],
+      "output": "bin/publish/linux-x64"
+//#if (commaAfterLinuxX64)
+    },
+//#else
+    }
+//#endif
+//#endif
+//#if (linuxArm64)
+    "linux-arm64": {
+      "executable": "dotnet",
+      "arguments": [
+        "publish", "MacroDeck.PluginTemplate.csproj",
+        "-c", "Release",
+        "-r", "linux-arm64",
+        "--self-contained", "false",
+        "-p:UseAppHost=false",
+        "-o", "bin/publish/linux-arm64"
+      ],
+      "output": "bin/publish/linux-arm64"
+    }
+//#endif
+  }
+}

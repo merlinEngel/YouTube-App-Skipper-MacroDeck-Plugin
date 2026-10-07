@@ -1,0 +1,60 @@
+{
+  "$schema": "https://schemas.macro-deck.app/plugin-manifest-v1.schema.json",
+  "manifestVersion": 1,
+  "id": "app.macro-deck.template",
+  "name": "Macro Deck Plugin Template",
+  "version": "1.0.0",
+  "description": "A minimal Macro Deck 3 plugin.",
+  "icon": "Assets/icon.svg",
+  "entrypoints": {
+//#if (winX64)
+//#if (commaAfterWinX64)
+    "win-x64": { "executable": "runtimes/win-x64/MacroDeck.PluginTemplate.dll", "runtime": { "kind": "FrameworkDependent", "dotnetVersion": "10.0" } },
+//#else
+    "win-x64": { "executable": "runtimes/win-x64/MacroDeck.PluginTemplate.dll", "runtime": { "kind": "FrameworkDependent", "dotnetVersion": "10.0" } }
+//#endif
+//#endif
+//#if (winArm64)
+//#if (commaAfterWinArm64)
+    "win-arm64": { "executable": "runtimes/win-arm64/MacroDeck.PluginTemplate.dll", "runtime": { "kind": "FrameworkDependent", "dotnetVersion": "10.0" } },
+//#else
+    "win-arm64": { "executable": "runtimes/win-arm64/MacroDeck.PluginTemplate.dll", "runtime": { "kind": "FrameworkDependent", "dotnetVersion": "10.0" } }
+//#endif
+//#endif
+//#if (osxArm64)
+//#if (commaAfterOsxArm64)
+    "osx-arm64": { "executable": "runtimes/osx-arm64/MacroDeck.PluginTemplate.dll", "runtime": { "kind": "FrameworkDependent", "dotnetVersion": "10.0" } },
+//#else
+    "osx-arm64": { "executable": "runtimes/osx-arm64/MacroDeck.PluginTemplate.dll", "runtime": { "kind": "FrameworkDependent", "dotnetVersion": "10.0" } }
+//#endif
+//#endif
+//#if (osxX64)
+//#if (commaAfterOsxX64)
+    "osx-x64": { "executable": "runtimes/osx-x64/MacroDeck.PluginTemplate.dll", "runtime": { "kind": "FrameworkDependent", "dotnetVersion": "10.0" } },
+//#else
+    "osx-x64": { "executable": "runtimes/osx-x64/MacroDeck.PluginTemplate.dll", "runtime": { "kind": "FrameworkDependent", "dotnetVersion": "10.0" } }
+//#endif
+//#endif
+//#if (linuxX64)
+//#if (commaAfterLinuxX64)
+    "linux-x64": { "executable": "runtimes/linux-x64/MacroDeck.PluginTemplate.dll", "runtime": { "kind": "FrameworkDependent", "dotnetVersion": "10.0" } },
+//#else
+    "linux-x64": { "executable": "runtimes/linux-x64/MacroDeck.PluginTemplate.dll", "runtime": { "kind": "FrameworkDependent", "dotnetVersion": "10.0" } }
+//#endif
+//#endif
+//#if (linuxArm64)
+    "linux-arm64": { "executable": "runtimes/linux-arm64/MacroDeck.PluginTemplate.dll", "runtime": { "kind": "FrameworkDependent", "dotnetVersion": "10.0" } }
+//#endif
+  },
+  "publisher": {
+    "name": "Example Publisher"
+  },
+  "license": "MIT",
+  "repository": "https://github.com/example/my-plugin",
+//#if (hasHomepage)
+  "homepage": "https://example.com/my-plugin",
+//#endif
+  "compatibility": {
+    "macroDeck": ">=3.0.0-0"
+  }
+}

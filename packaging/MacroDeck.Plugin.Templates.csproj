@@ -1,0 +1,47 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <!-- Packs the repository root as a `dotnet new` template package. It is deliberately outside the
+         solution: `dotnet build` at the root builds the plugin, not the package that ships it. -->
+
+    <PropertyGroup>
+        <PackageId>MacroDeck.Plugin.Templates</PackageId>
+        <PackageType>Template</PackageType>
+        <Version Condition="'$(Version)' == ''">0.0.0-local</Version>
+        <Title>Macro Deck plugin template</Title>
+        <Authors>Macro Deck</Authors>
+        <Description>`dotnet new macrodeck-plugin` - a minimal out-of-process Macro Deck 3 plugin, with a test project and the developer tooling wired up.</Description>
+        <PackageTags>dotnet-new;templates;macrodeck;macro-deck;plugin</PackageTags>
+        <PackageProjectUrl>https://github.com/Macro-Deck-App/Macro-Deck-Plugin-Template</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/Macro-Deck-App/Macro-Deck-Plugin-Template</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+
+        <TargetFramework>net10.0</TargetFramework>
+        <IncludeBuildOutput>false</IncludeBuildOutput>
+        <ContentTargetFolders>content</ContentTargetFolders>
+        <EnableDefaultItems>false</EnableDefaultItems>
+        <!-- The template content includes dot-directories (.template.config) and files NuGet would
+             otherwise drop, and it carries no lib/ or ref/ assembly. -->
+        <NoDefaultExcludes>true</NoDefaultExcludes>
+        <NoWarn>$(NoWarn);NU5128</NoWarn>
+        <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <!-- The repository root is the template content: what `dotnet new macrodeck-plugin` writes out
+             is exactly what a clone of this repository contains, minus what template.json excludes. -->
+        <!-- PackagePath is set explicitly: the content lives above this project directory, so NuGet
+             cannot infer a relative path for it and would otherwise flatten the whole tree. -->
+        <Content Include="..\**\*"
+                 Exclude="..\.git\**;..\**\bin\**;..\**\obj\**;..\**\.macrodeck-dev-state\**;..\**\.DS_Store;..\local-feed\*.nupkg;..\local-feed\*.snupkg;..\packaging\**;..\LICENSE;..\*.macroDeckPlugin"
+                 Pack="true"
+                 PackagePath="content\%(RecursiveDir)%(Filename)%(Extension)" />
+        <!-- Separate because NuGet reads an extensionless PackagePath as a directory: the wildcard's
+             path would nest LICENSE in a folder of its own name, and a trailing separator here would
+             emit a double slash that `dotnet new` then reads as an absolute path. -->
+        <Content Include="..\LICENSE" Pack="true" PackagePath="content" />
+        <None Include="..\README.md" Pack="true" PackagePath="\" />
+    </ItemGroup>
+
+</Project>

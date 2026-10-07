@@ -1,0 +1,166 @@
+name: Publish
+
+# Publishes MacroDeck.Plugin.Templates to nuget.org when a version tag is pushed. The leading `v` is
+# removed and the rest of the tag becomes the NuGet package version.
+#
+# This file is the only place NuGet/login appears. Trusted publishing validates the workflow file the
+# login step runs in, so the nuget.org policy names publish.yml and nothing else.
+
+on:
+  push:
+    tags: [ 'v[0-9]*' ]
+
+concurrency:
+  group: publish
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_VERSION: 10.0.x
+
+jobs:
+  ci:
+    name: CI
+    uses: ./.github/workflows/ci.yml
+    with:
+      release-tag: ${{ github.ref_name }}
+
+  publish:
+    name: Publish to NuGet
+    needs: ci
+    runs-on: ubuntu-latest
+    outputs:
+      published: ${{ steps.credentials.outputs.configured }}
+    permissions:
+      contents: read
+      # Lets the job request the OIDC token nuget.org exchanges for a short-lived API key.
+      id-token: write
+    steps:
+      # secrets are not available to a job-level if, so the gate is a step that exports the decision.
+      - name: Check nuget.org credentials
+        id: credentials
+        env:
+          NUGET_USER: ${{ secrets.NUGET_USER }}
+        run: |
+          set -euo pipefail
+          if [ -n "${NUGET_USER}" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "configured=false" >> "$GITHUB_OUTPUT"
+          echo "::warning::NUGET_USER is not configured - skipping the NuGet push. The package remains available as a workflow artifact."
+
+      - name: Download package
+        if: ${{ steps.credentials.outputs.configured == 'true' }}
+        uses: actions/download-artifact@v7
+        with:
+          name: template-package
+          path: ${{ runner.temp }}/packages
+
+      - uses: actions/setup-dotnet@v6
+        if: ${{ steps.credentials.outputs.configured == 'true' }}
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      # As late as possible: the issued key is valid for one hour, and one token yields one key.
+      - name: NuGet login
+        id: login
+        if: ${{ steps.credentials.outputs.configured == 'true' }}
+        uses: NuGet/login@v1
+        with:
+          user: ${{ secrets.NUGET_USER }}
+
+      - name: Push package
+        if: ${{ steps.credentials.outputs.configured == 'true' }}
+        env:
+          NUGET_API_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
+          PACKAGE_DIR: ${{ runner.temp }}/packages
+        run: |
+          set -euo pipefail
+          for package in "${PACKAGE_DIR}"/*.nupkg; do
+            echo "Pushing $(basename "${package}")"
+            dotnet nuget push "${package}" \
+              --api-key "${NUGET_API_KEY}" \
+              --source https://api.nuget.org/v3/index.json \
+              --skip-duplicate
+          done
+
+      - name: Summarize
+        if: ${{ steps.credentials.outputs.configured == 'true' }}
+        env:
+          PACKAGE_DIR: ${{ runner.temp }}/packages
+        run: |
+          {
+            echo "## Published to NuGet"
+            echo
+            for package in "${PACKAGE_DIR}"/*.nupkg; do
+              echo "- \`$(basename "${package}")\`"
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  notify-discord:
+    name: Notify Discord
+    needs: publish
+    # Only announce a package that was actually pushed.
+    if: ${{ needs.publish.outputs.published == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check Discord webhook
+        id: webhook
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          set -euo pipefail
+          if [ -n "${DISCORD_WEBHOOK_URL}" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "configured=false" >> "$GITHUB_OUTPUT"
+          echo "::warning::DISCORD_WEBHOOK_URL is not configured - skipping the Discord announcement."
+
+      - uses: actions/checkout@v5
+        if: ${{ steps.webhook.outputs.configured == 'true' }}
+        with:
+          fetch-depth: 0
+
+      - name: Announce the new template
+        if: ${{ steps.webhook.outputs.configured == 'true' }}
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          TAG: ${{ github.ref_name }}
+          REPOSITORY_URL: ${{ github.server_url }}/${{ github.repository }}
+          PLUGIN_DEVELOPER_ROLE: '1550148122318086194'
+        run: |
+          set -euo pipefail
+          version="${TAG#v}"
+          previous="$(git tag --list 'v[0-9]*' --sort=-version:refname | grep -vx "${TAG}" | head -n 1 || true)"
+          if [ -n "${previous}" ]; then
+            changes="${REPOSITORY_URL}/compare/${previous}...${TAG}"
+          else
+            changes="${REPOSITORY_URL}/commits/${TAG}"
+          fi
+
+          content="$(cat <<EOF
+          <@&${PLUGIN_DEVELOPER_ROLE}> **The Macro Deck plugin template has been updated to ${version}.**
+
+          Please make sure you:
+          • **Carry the changes over into your existing plugins.** What changed: <${changes}>
+          • **Create new plugins from the updated template** only.
+
+          Update your installed template with:
+          \`dotnet new install MacroDeck.Plugin.Templates::${version}\`
+
+          NuGet: <https://www.nuget.org/packages/MacroDeck.Plugin.Templates/${version}>
+          EOF
+          )"
+
+          jq -n --arg content "${content}" --arg role "${PLUGIN_DEVELOPER_ROLE}" \
+            '{content: $content, allowed_mentions: {parse: [], roles: [$role]}}' \
+            | curl --fail-with-body --silent --show-error \
+                -H 'Content-Type: application/json' \
+                --data-binary @- \
+                "${DISCORD_WEBHOOK_URL}"
