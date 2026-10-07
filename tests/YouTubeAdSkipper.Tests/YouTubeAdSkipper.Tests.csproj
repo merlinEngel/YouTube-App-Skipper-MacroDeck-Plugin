@@ -16,7 +16,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\src\MacroDeck.PluginTemplate\MacroDeck.PluginTemplate.csproj" />
+        <ProjectReference Include="..\..\src\YouTubeAdSkipper\YouTubeAdSkipper.csproj" />
     </ItemGroup>
 
 </Project>

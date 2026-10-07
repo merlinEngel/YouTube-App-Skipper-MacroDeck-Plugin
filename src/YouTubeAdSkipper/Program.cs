@@ -1,6 +1,6 @@
 using MacroDeck.Plugin.Hosting;
 using MacroDeck.Plugin.Serilog;
-using MacroDeck.PluginTemplate;
+using YouTubeAdSkipper;
 
 // Identity, description and icon are not set here: they come from manifest.json at the content root.
 // Strings is generated from Localization/*.resx, so UseLocalization is what makes every LocalizedString

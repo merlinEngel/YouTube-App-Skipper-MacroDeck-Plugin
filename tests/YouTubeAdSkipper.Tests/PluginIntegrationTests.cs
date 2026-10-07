@@ -1,7 +1,7 @@
 using MacroDeck.Plugin.Testing;
 using NUnit.Framework;
 
-namespace MacroDeck.PluginTemplate.Tests;
+namespace YouTubeAdSkipper.Tests;
 
 /// <summary>
 /// Behaviour tests through <see cref="PluginTestHarness"/>: the plugin's own capability handlers run,
@@ -22,33 +22,6 @@ public sealed class PluginIntegrationTests
 
 		Assert.DoesNotThrowAsync(harness.InitializeIntegrationsAsync);
 	}
-
-	[Test]
-	public async Task The_example_action_writes_the_message_to_the_log()
-	{
-		await using var harness = CreateHarness();
-		await harness.InitializeIntegrationsAsync();
-
-		var outcome = await harness.Actions.ExecuteAsync(
-			"log-message",
-			new Dictionary<string, object?> { ["message"] = "Hello from a test" });
-
-		Assert.That(outcome.Succeeded, Is.True);
-		Assert.That(harness.Logs.Events.Any(e => e.Message.Contains("Hello from a test")), Is.True);
-	}
-
-	[Test]
-	public async Task The_example_action_fails_when_the_message_is_blank()
-	{
-		await using var harness = CreateHarness();
-		await harness.InitializeIntegrationsAsync();
-
-		var outcome = await harness.Actions.ExecuteAsync(
-			"log-message",
-			new Dictionary<string, object?> { ["message"] = "   " });
-
-		Assert.That(outcome.Succeeded, Is.False);
-	}
 }
 
 /// <summary>
@@ -61,7 +34,7 @@ public sealed class LocalizationTests
 	[Test]
 	public void The_catalog_is_scoped_to_the_plugin_id()
 	{
-		Assert.That(Strings.LocalizationCatalog.Scope, Is.EqualTo("plugin:app.macro-deck.template"));
+		Assert.That(Strings.LocalizationCatalog.Scope, Is.EqualTo("plugin:com.merlinengel.youtube-ad-skipper"));
 	}
 
 	[Test]
@@ -72,9 +45,10 @@ public sealed class LocalizationTests
 	}
 
 	[Test]
-	public void The_action_strings_come_from_the_catalog()
+	public void The_action_and_error_strings_come_from_the_catalog()
 	{
-		Assert.That(Strings.LocalizationCatalog.KeysOf("en"), Does.Contain("Actions.LogMessage.Name"));
+		Assert.That(Strings.LocalizationCatalog.KeysOf("en"), Does.Contain("Actions.SkipYouTubeAd.Name"));
+		Assert.That(Strings.LocalizationCatalog.KeysOf("en"), Does.Contain("Errors.NoSkippableAd"));
 	}
 
 	[Test]
